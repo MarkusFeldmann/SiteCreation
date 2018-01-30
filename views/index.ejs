@@ -25,10 +25,33 @@
             <p>Login or Register with:</p>
             <a href="/login365" class="btn btn-default">
                 <span class="fa fa-user"></span> Azure AD Login</a>
-            <a href="/signup" class="btn btn-default">
-                <span class="fa fa-user"></span> Local Signup</a>
+            <a href="/profile" class="btn btn-default">
+                <span class="fa fa-user"></span>Profile</a>
+            <a href="/site" class="btn btn-default">
+                <span class="fa fa-user"></span>Site</a>
         </div>
     </div>
+
+    <div class="leftAlign">
+        <h4>OAuth2 token</h4>
+        <% if (user) { for (var res in user.tokens) { %>
+            <table border="1" style="width:85%;text-align:left">
+                <% for (var key in user.tokens[res]) { %>
+                    <tr>
+                        <td>
+                            <%= key %>
+                        </td>
+                        <td>
+                            <%= user.tokens[res][key] %>
+                        </td>
+                    </tr>
+                    <% } %>
+            </table>
+            <% }} %>
+    </div>
+    <p>Full Claimes</p>
+    <%- JSON.stringify(user) %>
+        <p></p>
 </body>
 
 </html>

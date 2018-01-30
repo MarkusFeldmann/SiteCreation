@@ -26,7 +26,8 @@ app.use(bodyParser());
 
 app.set('view engine', 'ejs');
 
-app.use(session({ secret:'sdlfksdlfksldfksdlkfsdlfkslkf'}));
+//app.use(session({ secret:'sdlfksdlfksldfksdlkfsdlfkslkf'}));
+app.use(session({ secret: 'keyboard cat', resave: true, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
