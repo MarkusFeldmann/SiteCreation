@@ -1,5 +1,6 @@
 var appSettings = require('../appSettings.js');
 var utils = require('./models/utils.js');
+var Key = require('./models/keys.js');
 
 module.exports = function (app, passport, db) {
 
@@ -59,6 +60,9 @@ module.exports = function (app, passport, db) {
 
 
     app.get('/keys', function (req, res, next) {
+
+        //var keysCollection = new Key();
+        
         utils.getKeysFromDatabase(renderKeys);
 
         function renderKeys(results) {

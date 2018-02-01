@@ -32,33 +32,67 @@
         <a href="/">Home</a>
     </div>
 
-    <div name="display">
-        <H2>Service capabilities</H2>
-        <% if (data) { %>
-            <ul class="leftAlign">
-                <h4>
-                    <%= data %>
-                </h4>
-            </ul>
-            <% } %>
-    </div>
-    <div>
-            <%= JSON.stringify(k.keys, "\r\n", 4)%>
-    </div>
     <div>
         <table border="1">
-            <% for(var i=0; i<=k.keys.length;  i++) { %>
-              <% for(var key in k.keys[i]) { %>
+            <% for(var i=0; i<k.keys.length;  i++) { %>
+              
                     <tr>
                         <td>
-                            <%= i %>
+                            <%= i %>: kid
                         </td>
                         <td>
-                            <%= k.keys[i][key] %>
+                            <%= k.keys[i]['kid'] %>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            use
+                        </td>
+                        <td>
+                            <%= k.keys[i]['use'] %>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            kty
+                        </td>
+                        <td>
+                            <%= k.keys[i]['kty'] %>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            e
+                        </td>
+                        <td>
+                            <%= k.keys[i]['e'] %>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            n
+                        </td>
+                        <td>
+                            <%= k.keys[i]['n'] %>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            x5t
+                        </td>
+                        <td>
+                            <%= k.keys[i]['x5t'] %>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            x5c
+                        </td>
+                        <td>
+                            <%= k.keys[i]['x5c'] %>
                         </td>
                     </tr>
                     <% } %>
-            <% } %>
         </table>
     </div>
 </body>
