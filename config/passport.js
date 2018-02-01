@@ -1,4 +1,3 @@
-//import { OIDCStrategy, BearerStrategy } from 'passport-azure-ad/lib';
 var bunyan = require('bunyan');
 var passportad = require('passport-azure-ad');
 var options = require('../appSettings.js').oauthOptions;
@@ -11,8 +10,7 @@ var log = bunyan.createLogger({
 var OIDCStrategy = require('passport-azure-ad').OIDCStrategy;
 
 // First use this before using a DB
-var users = [];
-var map = [];
+// var users = [];
 
 module.exports = function (passport) {
     // DB version
@@ -98,4 +96,34 @@ module.exports = function (passport) {
                 });
             });
         }));
+
+        //Take care of refreshing tokens if necessary, this will be injected as a default route before any token baed actions
+        passport.getAccessToken = function(resource, req, res, next) {
+            if (passport.user.hasToken(resource)) {
+                // already has access token for the exchange service, 
+                // should also check for expiration, and other issues, ignore for now.
+                // skip to the next middleware
+                return next();
+            } else {  /*
+                var data = 'grant_type=refresh_token' 
+                + '&refresh_token=' + passport.user.refresh_token 
+                + '&client_id=' + appSettings.oauthOptions.clientId 
+                + '&client_secret=' + encodeURIComponent(appSettings.oauthOptions.clientSecret) 
+                + '&resource=' + encodeURIComponent(resource);
+                var opts = {
+                    url: appSettings.apiEndpoints.accessTokenRequestUrl,
+                    body: data,
+                    headers : { 'Content-Type' : 'application/x-www-form-urlencoded' }
+                };
+                require('request').post(opts, function (err, response, body) {
+                    if (err) {
+                        return next(err)
+                    } else {
+                        var token = JSON.parse(body);
+                        passport.user.setToken(token);          // Change this to work
+                        return next();
+                    }
+                }) */
+            }
+        }
 }
