@@ -54,7 +54,8 @@ function getKeys(jwks_uri) {
                         }
 
                         newkey.save(function (err, rec) {
-                            console.log("Saving Key Data in DB " + rec);
+                            //Change this to utilize the logger
+                            //console.log("Saving Key Data in DB " + rec);
                         })
                     });
                 }

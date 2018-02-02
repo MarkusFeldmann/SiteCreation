@@ -1,10 +1,16 @@
 var appSettings = require('../appSettings.js');
 var utils = require('./models/utils.js');
 var Key = require('./models/keys.js');
+var bunyan = require('bunyan');
+
+var log = bunyan.createLogger({
+    name: 'Microsoft OIDC Example Web Application'
+});
 
 module.exports = function (app, passport, db) {
 
     app.get('/', function (req, res) {
+        if(req.user && (!passport.user)) { passport.user = req.user };
         res.render('index.ejs', { user: req.user });
     });
 
@@ -22,14 +28,19 @@ module.exports = function (app, passport, db) {
             passport.authenticate('azuread-openidconnect',
                 {
                     response: res,
-                    //resourceURL: appSettings.resources.sharepoint,
                     resourceURL: appSettings.resources.discovery,
                     failureRedirect: '/'
-                })(req, res, next),
-                function (req, res) {
-                    res.redirect('/');
-                };
-        });
+                }
+            )(req, res, next); 
+        },
+            function (req, res) {
+                console.log('After Login');
+                var bla = passport.user;
+                res.redirect('/');
+            }
+
+            
+        );
     app.post('/auth/azureOAuth/callback',
         function (req, res, next) {
             passport.authenticate('azuread-openidconnect',
@@ -62,39 +73,25 @@ module.exports = function (app, passport, db) {
     app.get('/keys', function (req, res, next) {
 
         //var keysCollection = new Key();
-        
+
         utils.getKeysFromDatabase(renderKeys);
 
         function renderKeys(results) {
-            if (!results) { 
-                results = { keys: { "nd": "not defined" }}
+            if (!results) {
+                results = { keys: { "nd": "not defined" } }
             };
-
-            var a = results.keys[0];
-            var b = results.keys[1];
             res.render('keys', { data: req.user, k: results });
         }
     });
 
-    
+
 
 
     // The following middleware checks for and obtain, if necessary, access_token for
     // accessing SharePoint site service. 
-    // app.use('/site', function (req, res, next) { passport.getAccessToken(appSettings.resources.sharepoint, req, res, next); })
+    app.use('/site', function (req, res, next) { passport.getAccessToken(appSettings.resources.sharepoint, req, res, next); })
 
     app.get('/site', function (req, res, next) {
-
-        /*passport.authenticate('azuread-openidconnect',
-            {
-                response: res,
-                resourceURL: 'https://graph.windows.net',
-                failureRedirect: '/'
-            })(req, res, next),
-            function (req, res) {
-                //res.redirect('/'); */
-
-
         var fileUrl = appSettings.apiEndpoints.sharePointSiteBaseUrl + '/lists';
         var opts = {
             auth: { 'bearer': req.user.accessToken },
@@ -113,10 +110,30 @@ module.exports = function (app, passport, db) {
                 res.render('site', { data: data });
             }
         });
-        //};
     });
-}
 
+
+    app.use('/discovery', function (req, res, next) { passport.getAccessToken(appSettings.resources.discovery, req, res, next); })
+
+    app.get('/discovery', function (req, res, next) {
+        if (!passport.user.getToken(appSettings.resources.discovery)) {
+            return next('invalid token');
+        }
+
+        require('request').get(fileUrl, opts, function (error, response, body) {
+            if (error) {
+                next(error);
+            }
+            else {
+                passport.user.setCapabilities(JSON.parse(body)['value']);
+                data = { user: passport.user, capabilities: passport.user.capabilities };
+                res.render('discovery', { data: data });
+            }
+        });
+
+
+    })
+}
 function isLoggedIn(req, res, next) {
     if (req.isAuthenticated())
         return next();

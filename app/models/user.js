@@ -9,19 +9,30 @@ var userSchema = mongoose.Schema({
     accessToken: String,
     refreshToken: String,
     email: String,
-    name: String,
+    name: {},
+    upn: String,
     displayName: String,
-    tokens: {},
+    tokens: [{
+        resource: String,
+        token: String,
+        expires: String,
+        expiresDate: String
+    }],
     capabilities: {}
 });
 
-userSchema.methods.hasToken = function(resourceUri) {
-    if (user.tokens.hasOwnProperty(resourceUri)) {
-        return true;
-    } else {
-        return false;
+userSchema.methods.hasToken = function (resourceUri) {
+    if (typeof this.tokens != "undefined") {
+        if (this.tokens.hasOwnProperty(resourceUri)) {
+            return true;
+        } else {
+            return false;
+        }
     }
+    return false;
 };
+
+// userSchema.methods.validate = function (result, next) {};
 
 module.exports = mongoose.model('User', userSchema);
 

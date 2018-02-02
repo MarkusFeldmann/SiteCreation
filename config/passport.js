@@ -48,7 +48,7 @@ module.exports = function (passport) {
 
     //passport.use('azuread-openidconnect', new OIDCStrategy(options      // Seems this is the default name,...
     passport.use(new OIDCStrategy(options
-        , function (iss, sub, profile, accessToken, refreshToken, done) {
+        , function (iss, sub, profile, jwtClaims, accessToken, refreshToken, done) {            
             if (!profile.oid) {
                 return done(new Error("No oid found"), null);
             }
@@ -64,33 +64,44 @@ module.exports = function (passport) {
                     if (!user) {
                         // "Auto-registration"
 
-                        //users.push(profile);
-                        // This makes no sense, put it all into a DB to make it accessible
-                        // map.push({oid: profile.oid, accesstoken: accessToken});
-
-                        //Put the user to the array, instead of the DB
-                        //users.push(profile);
-
                         var newUser = new User();
 
                         newUser.id = profile.oid;
                         newUser.displayName = profile.displayName;
                         newUser.email = profile.upn;
                         newUser.accessToken = accessToken;
-                        newUser.refreshToken = refreshToken;
+                        newUser.refreshToken = refreshToken.refresh_token;
+                        newUser.name = profile.name;
+                        newUser.upn = profile.upn;
+                        
+                        //Set expiration of the accessToken in DB, for Diagnosis in Test as well
+                        var exp = refreshToken.expires_on;
+                        var date = new Date(exp * 1000);
+                        var resourceName = "default";
+                        if(refreshToken.resource) {
+                            resourceName = refreshToken.resource;
+                        }
+
+                        newUser.tokens.push( 
+                            { 
+                                resource: resourceName, 
+                                token: accessToken,
+                                expiresDate: date,
+                                expires: exp
+                            }
+                        );
+                        
 
                         newUser.save(function (err) {
                             if (err)
                                 throw err;
-                            // DB
-                            return done(null, newUser);
-                            
-                            // Array
-                            //return done(null, profile);
 
+                            passport.user = newUser;
+                            return done(null, newUser);
                         });
                     }
                     else {
+                        passport.user = user;
                         return done(null, user);
                     }
                 });
