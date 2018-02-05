@@ -10,7 +10,7 @@ var log = bunyan.createLogger({
 module.exports = function (app, passport, db) {
 
     app.get('/', function (req, res) {
-        if(req.user && (!passport.user)) { passport.user = req.user };
+        //if(req.user && (!passport.user)) { passport.user = req.user };    Moved to deserializeuser 
         res.render('index.ejs', { user: req.user });
     });
 

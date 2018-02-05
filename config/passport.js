@@ -18,10 +18,8 @@ module.exports = function (passport) {
 
     passport.deserializeUser(function (id, done) {
         User.findOne({ 'id': id }, function (err, user) {
-            //If there is a user found save it in passport IS THIS NEEDED ??? Does not the session set the user???
-            //if(!passport.user && user != null) {
-                // passport.user = user;
-            //}
+            //The next enables you to directly go to a subsite by setting the passport user, so that all properties are set
+            if(user && (!passport.user)) { passport.user = user };
             done(err, user);
         })
     }); 
