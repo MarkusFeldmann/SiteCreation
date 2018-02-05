@@ -1,12 +1,7 @@
-/*
- *  Copyright (c) Microsoft. All rights reserved. Licensed under the MIT license. See full license at the bottom of this file.
- */
-
 var mongoose = require('mongoose');
 
 var userSchema = mongoose.Schema({
     id: String,
-    accessToken: String,
     refreshToken: String,
     email: String,
     name: {},
@@ -18,20 +13,135 @@ var userSchema = mongoose.Schema({
         expires: String,
         expiresDate: String
     }],
-    capabilities: {}
+    capabilities: [{
+        capability: String,
+        serviceEndpointUri: String,
+        serviceId: String,
+        serviceResourceId: String
+    }]
 });
 
 userSchema.methods.hasToken = function (resourceUri) {
+    //Check if a token for the resource is present and still has at least 5 minutes validity period left
     if (typeof this.tokens != "undefined") {
-        if (this.tokens.hasOwnProperty(resourceUri)) {
-            return true;
-        } else {
-            return false;
+        var uriPosition = this.tokens.findIndex(
+            function (a) { return (a.resource == resourceUri) });
+        if (uriPosition >= 0) {
+            var token = this.tokens[uriPosition];
+            if (this.tokenStillValid(token, resourceUri)) {
+                return token;
+            }
+        }
+        //No valid token means no.
+        return false;
+    };
+}
+
+userSchema.methods.setToken = function (newToken, resource) {
+    var date = new Date(newToken.expires_on * 1000);
+    if(!newToken.resource) {
+        //is this ok? there should always be a resource, check for this
+        return false;
+    }
+
+    if (typeof this.tokens != "undefined") {
+        var uriPosition = this.tokens.findIndex(
+            function (a) { return (a.resource == resource) });
+        if (uriPosition >= 0) {
+            var oldToken = this.tokens[uriPosition];    
+            oldToken.token = newToken.access_token;
+            oldToken.expiresDate = date,
+            oldToken.expires = newToken.expires_on;
+            //Renew the access token as well
+            //this.refreshToken = newToken.refresh_token;           // CHECK OUT IF REFRESH TOKEN HAS TO BE RESET !!!
+
+            this.save(function (err) {
+                if (err)
+                    throw err;
+            });
+        }
+        else {
+            var newToken = {
+                resource: resource,
+                token: newToken.access_token,
+                expiresDate:  date,
+                expires: newToken.expires_on
+            }
+            this.tokens.push(newToken);
+            //this.refreshToken = newToken.refresh_token;           // CHECK OUT IF REFRESH TOKEN HAS TO BE RESET !!!
+            this.save(function (err) {
+                if (err)
+                    throw err;
+            });
         }
     }
-    return false;
-};
+}
 
+userSchema.methods.getToken = function (resourceUri) {
+    var token = this.hasToken(resourceUri);
+    if (token) {
+        /*var uriPosition = this.tokens.findIndex(
+            function(a) {return (a.resource == resourceUri)});
+        var token = this.tokens[uriPosition];
+        //Check for expiration
+        var now = new Date();
+        var expiration = new Date(token.expires * 1000);
+        var timeLeft = expiration - now;
+        //If the remaining time is less that 5 minutes, return false
+        if((timeLeft / 1000) >= 300) { */
+
+        return token;
+    }
+    else {
+        return false;
+    }
+}
+
+userSchema.methods.setCapabilities = function (capabilities) {
+    for(var i=0; i<capabilities.length; i++) {
+        if(!this.userHasCapability(capabilities[i].capability)) {
+            var cap = {
+                capability: capabilities[i].capability,
+                serviceId: capabilities[i].serviceId,
+                serviceResourceId: capabilities[i].serviceResourceId
+            }
+            
+            this.capabilities.push(cap);
+        }
+    }
+    this.save(function (err) {
+        if (err)
+            throw err;
+    });
+}
+
+userSchema.methods.userHasCapability = function (capability) {
+    if (typeof this.capabilities != "undefined") {
+        var capPos = this.capabilities.findIndex(
+            function (c) { return (c.capability == capability) });
+        if (capPos >= 0) {
+            return true;            
+        }
+        //Capability not present
+        return false;
+    };
+}
+
+
+userSchema.methods.tokenStillValid = function (token, resource) {
+    var uriPosition = this.tokens.findIndex(
+        function (a) { return (a.resource == resource) });
+    var token = this.tokens[uriPosition];
+    //Check for expiration
+    var now = new Date();
+    var expiration = new Date(token.expires * 1000);
+    var timeLeft = expiration - now;
+    //If the remaining time is less that 5 minutes, return false
+    if ((timeLeft / 1000) >= 300) {
+        return true;
+    }
+    return false;
+}
 // userSchema.methods.validate = function (result, next) {};
 
 module.exports = mongoose.model('User', userSchema);

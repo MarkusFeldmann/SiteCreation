@@ -92,9 +92,13 @@ module.exports = function (app, passport, db) {
     app.use('/site', function (req, res, next) { passport.getAccessToken(appSettings.resources.sharepoint, req, res, next); })
 
     app.get('/site', function (req, res, next) {
+        if (!passport.user.getToken(appSettings.resources.sharepoint)) {
+            return next('invalid token');
+        }
+
         var fileUrl = appSettings.apiEndpoints.sharePointSiteBaseUrl + '/lists';
         var opts = {
-            auth: { 'bearer': req.user.accessToken },
+            auth: { 'bearer': passport.user.getToken(appSettings.resources.sharepoint).token },
             headers: { 'accept': 'application/json; odata=verbose' },  // verbose resource representation differs from the non-verbose one. Use verbose to make life a little easier. :)
             secureProtocol: 'TLSv1_method'  // required of Shareoint site and OneDrive,
         };
@@ -119,6 +123,9 @@ module.exports = function (app, passport, db) {
         if (!passport.user.getToken(appSettings.resources.discovery)) {
             return next('invalid token');
         }
+
+        var fileUrl = appSettings.apiEndpoints.discoveryServiceBaseUrl + '/services';
+        var opts = { auth: { 'bearer' : passport.user.getToken(appSettings.resources.discovery).token } };
 
         require('request').get(fileUrl, opts, function (error, response, body) {
             if (error) {

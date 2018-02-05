@@ -1,6 +1,7 @@
 var bunyan = require('bunyan');
 var passportad = require('passport-azure-ad');
 var options = require('../appSettings.js').oauthOptions;
+var appSettings = require('../appSettings.js');
 var User = require('../app/models/user');
 
 var log = bunyan.createLogger({
@@ -8,9 +9,6 @@ var log = bunyan.createLogger({
 });
 
 var OIDCStrategy = require('passport-azure-ad').OIDCStrategy;
-
-// First use this before using a DB
-// var users = [];
 
 module.exports = function (passport) {
     // DB version
@@ -20,20 +18,13 @@ module.exports = function (passport) {
 
     passport.deserializeUser(function (id, done) {
         User.findOne({ 'id': id }, function (err, user) {
+            //If there is a user found save it in passport IS THIS NEEDED ??? Does not the session set the user???
+            //if(!passport.user && user != null) {
+                // passport.user = user;
+            //}
             done(err, user);
         })
     }); 
-
-    // Array based version
-    /*passport.serializeUser(function(user, done) {
-        done(null, user.oid);
-      });
-      
-      passport.deserializeUser(function(oid, done) {
-        findByOid(oid, function (err, user) {
-          done(err, user);
-        });
-      });*/
 
     var findByOid = function (oid, fn) {
         for (var i = 0, len = users.length; i < len; i++) {
@@ -69,7 +60,7 @@ module.exports = function (passport) {
                         newUser.id = profile.oid;
                         newUser.displayName = profile.displayName;
                         newUser.email = profile.upn;
-                        newUser.accessToken = accessToken;
+                        //newUser.accessToken = accessToken;
                         newUser.refreshToken = refreshToken.refresh_token;
                         newUser.name = profile.name;
                         newUser.upn = profile.upn;
@@ -85,7 +76,7 @@ module.exports = function (passport) {
                         newUser.tokens.push( 
                             { 
                                 resource: resourceName, 
-                                token: accessToken,
+                                token: refreshToken.access_token,
                                 expiresDate: date,
                                 expires: exp
                             }
@@ -112,29 +103,35 @@ module.exports = function (passport) {
         passport.getAccessToken = function(resource, req, res, next) {
             if (passport.user.hasToken(resource)) {
                 // already has access token for the exchange service, 
-                // should also check for expiration, and other issues, ignore for now.
-                // skip to the next middleware
+                // check for expiration
+                
                 return next();
-            } else {  /*
-                var data = 'grant_type=refresh_token' 
-                + '&refresh_token=' + passport.user.refresh_token 
-                + '&client_id=' + appSettings.oauthOptions.clientId 
-                + '&client_secret=' + encodeURIComponent(appSettings.oauthOptions.clientSecret) 
-                + '&resource=' + encodeURIComponent(resource);
-                var opts = {
-                    url: appSettings.apiEndpoints.accessTokenRequestUrl,
-                    body: data,
-                    headers : { 'Content-Type' : 'application/x-www-form-urlencoded' }
-                };
-                require('request').post(opts, function (err, response, body) {
-                    if (err) {
-                        return next(err)
-                    } else {
-                        var token = JSON.parse(body);
-                        passport.user.setToken(token);          // Change this to work
-                        return next();
-                    }
-                }) */
+            } else {  
+                
+            var data = 'grant_type=refresh_token' 
+            + '&refresh_token=' + passport.user.refreshToken 
+            + '&client_id=' + appSettings.oauthOptions.clientID 
+            + '&client_secret=' + encodeURIComponent(appSettings.oauthOptions.clientSecret) 
+            + '&resource=' + encodeURIComponent(resource);
+
+            var opts = {
+                url: appSettings.apiEndpoints.accessTokenRequestUrl,
+                body: data,
+                headers : { 'Content-Type' : 'application/x-www-form-urlencoded' }
+            };
+            
+            require('request').post(opts, function (err, response, body) {
+                if (err) {
+                    return next(err)
+                } else {
+                    var token = JSON.parse(body);
+                    var bla = passport;
+                    passport.user.setToken(token, resource);
+                    return next();
+                }
+            });
+
+
             }
         }
 }
