@@ -2,6 +2,8 @@ var appSettings = require('../appSettings.js');
 var utils = require('./models/utils.js');
 var Key = require('./models/keys.js');
 var bunyan = require('bunyan');
+var rp = require('request-promise');
+var mms = require('../config/process_query_template.js');
 
 var log = bunyan.createLogger({
     name: 'Microsoft OIDC Example Web Application'
@@ -84,6 +86,59 @@ module.exports = function (app, passport, db) {
         }
     });
 
+    app.use('/terms', function (req, res, next) { passport.getAccessToken(appSettings.resources.sharepoint, req, res, next); })
+
+    app.get('/terms', function (req, res, next) {
+        if (!passport.user.getToken(appSettings.resources.sharepoint)) {
+            return next('invalid token');
+        }
+
+        var postbody = mms('SiteProvisioning', 'Org');
+
+        var fileUrl = 'https://dev4711.sharepoint.com/_vti_bin/client.svc/ProcessQuery';
+
+        var formdigestopts = {
+            method: 'POST',
+            uri: 'https://dev4711.sharepoint.com/_api/contextinfo',
+            qs: { access_token: passport.user.getToken(appSettings.resources.sharepoint).token },
+            headers: {
+                'accept': 'application/json; odata=verbose' }
+        };
+
+        var formDigest=''; 
+
+        rp(formdigestopts).then(function(result){
+            var r = JSON.parse(result);
+            formDigest = r.d.GetContextWebInformation.FormDigestValue;
+        }).then(function(){           
+            
+            var opts = {
+                method: 'POST',
+                uri: fileUrl,
+                qs :{ access_token: passport.user.getToken(appSettings.resources.sharepoint).token },
+    
+                headers: {
+                 'accept': 'application/json; odata=verbose',
+                 'X-RequestDigest': formDigest
+                },
+                body: postbody
+            };
+
+            rp(opts).then(function(terms){
+                // I got the Terms here,.....   YEAH
+                var abc=0;
+            });
+        });
+
+        /*rp(opts).then(function(parsedBody){
+            console.log(parsedBody);
+        }).catch(function(err){
+            console.log("Err ", err);
+        });*/
+        
+        //res.render('terms', {data: "blabla"});
+
+    });
 
 
 
@@ -124,7 +179,7 @@ module.exports = function (app, passport, db) {
             return next('invalid token');
         }
 
-        var fileUrl = appSettings.apiEndpoints.discoveryServiceBaseUrl + '/services';
+        var fileUrl = appSettings.apiEndpoints.discoveryServiceBaseUrl + '/allservices';
         var opts = { auth: { 'bearer' : passport.user.getToken(appSettings.resources.discovery).token } };
 
         require('request').get(fileUrl, opts, function (error, response, body) {
