@@ -13,7 +13,7 @@ module.exports = function (app, passport, db) {
 
     app.get('/', function (req, res) {
         //if(req.user && (!passport.user)) { passport.user = req.user };    Moved to deserializeuser 
-        res.render('index.ejs', { user: req.user });
+        res.render('index.ejs', { user: passport.user });
     });
 
     app.get('/profile', isLoggedIn, function (req, res) {
@@ -33,16 +33,16 @@ module.exports = function (app, passport, db) {
                     resourceURL: appSettings.resources.discovery,
                     failureRedirect: '/'
                 }
-            )(req, res, next); 
+            )(req, res, next);
         },
-            function (req, res) {
-                console.log('After Login');
-                var bla = passport.user;
-                res.redirect('/');
-            }
+        function (req, res) {
+            console.log('After Login');
+            var bla = passport.user;
+            res.redirect('/');
+        }
 
-            
-        );
+
+    );
     app.post('/auth/azureOAuth/callback',
         function (req, res, next) {
             passport.authenticate('azuread-openidconnect',
@@ -57,24 +57,7 @@ module.exports = function (app, passport, db) {
             res.redirect('/');
         });
 
-    // The following middleware checks for and obtain, if necessary, access_token for
-    // accessing SharePoint site service. 
-    // app.use('/site', function (req, res, next) { passport.getAccessToken(appSettings.resources.sharepoint, req, res, next); })
-
-
-    //app.use('/keys', function(req, res, next) {
-    //    utils.getKeysFromDatabase();
-    //    next();
-    //});
-
-    //utils.getKeysFromMetadataUri(); 
-
-
-
-
     app.get('/keys', function (req, res, next) {
-
-        //var keysCollection = new Key();
 
         utils.getKeysFromDatabase(renderKeys);
 
@@ -93,51 +76,42 @@ module.exports = function (app, passport, db) {
             return next('invalid token');
         }
 
-        var postbody = mms('SiteProvisioning', 'Org');
-
-        var fileUrl = 'https://dev4711.sharepoint.com/_vti_bin/client.svc/ProcessQuery';
-
+        //Get the terms under Group: Siteprovisioning , Termset: Org
+        var postbody = mms('BKW.Themis', 'Organisationseinheit');
+        var fileUrl = appSettings.apiEndpoints.sharePointBaseUrl + '/_vti_bin/client.svc/ProcessQuery';
         var formdigestopts = {
             method: 'POST',
-            uri: 'https://dev4711.sharepoint.com/_api/contextinfo',
+            uri: appSettings.apiEndpoints.sharePointBaseUrl + '/_api/contextinfo',
             qs: { access_token: passport.user.getToken(appSettings.resources.sharepoint).token },
             headers: {
-                'accept': 'application/json; odata=verbose' }
+                'accept': 'application/json; odata=verbose'
+            }
         };
 
-        var formDigest=''; 
+        var formDigest = '';
 
-        rp(formdigestopts).then(function(result){
+        rp(formdigestopts).then(function (result) {
             var r = JSON.parse(result);
             formDigest = r.d.GetContextWebInformation.FormDigestValue;
-        }).then(function(){           
-            
+        }).then(function () {
+
             var opts = {
                 method: 'POST',
                 uri: fileUrl,
-                qs :{ access_token: passport.user.getToken(appSettings.resources.sharepoint).token },
-    
+                qs: { access_token: passport.user.getToken(appSettings.resources.sharepoint).token },
+
                 headers: {
-                 'accept': 'application/json; odata=verbose',
-                 'X-RequestDigest': formDigest
+                    'accept': 'application/json; odata=verbose',
+                    'X-RequestDigest': formDigest
                 },
                 body: postbody
             };
 
-            rp(opts).then(function(terms){
-                // I got the Terms here,.....   YEAH
-                var abc=0;
+            rp(opts).then(function (terms) {
+                var termArray = utils.getTermsFromResponse(terms);
+                res.render('terms', { data: termArray });
             });
         });
-
-        /*rp(opts).then(function(parsedBody){
-            console.log(parsedBody);
-        }).catch(function(err){
-            console.log("Err ", err);
-        });*/
-        
-        //res.render('terms', {data: "blabla"});
-
     });
 
 
@@ -180,7 +154,7 @@ module.exports = function (app, passport, db) {
         }
 
         var fileUrl = appSettings.apiEndpoints.discoveryServiceBaseUrl + '/allservices';
-        var opts = { auth: { 'bearer' : passport.user.getToken(appSettings.resources.discovery).token } };
+        var opts = { auth: { 'bearer': passport.user.getToken(appSettings.resources.discovery).token } };
 
         require('request').get(fileUrl, opts, function (error, response, body) {
             if (error) {

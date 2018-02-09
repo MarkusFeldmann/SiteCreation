@@ -4,14 +4,18 @@ var configDB = require('../../config/database.js');
 var keysSchema = require('../../config/keys.schema.js');
 var Key = require('../models/keys.js');
 
-//mongoose.connect(configDB.url);
-//var connection = mongoose.connection;
-
-//var keysSchemaObject = JSON.parse(keysSchema);
-//var schema = new mongoose.Schema(keysSchema);
-//var keys = mongoose.model('keys', schema);
-
-//var async = require ('async');
+//Extracts the terms from the rwa json response that processquery delivers
+function getTerms(rawTerms) {
+    var termJSON = JSON.parse(rawTerms);
+    var index = termJSON.findIndex(function (t) {
+        return t.hasOwnProperty('_ObjectType_');
+    });
+    var terms;
+    if (termJSON[index]._Child_Items_) {
+        terms = termJSON[index]._Child_Items_;
+    }
+    return terms;
+}
 
 var fileUrl = appSettings.oauthOptions.identityMetadata;
 
@@ -40,17 +44,17 @@ function getKeys(jwks_uri) {
 
                         // Store the newly created ones
                         var newkey = new Key();
-                        for(let i=0; i<data.keys.length; i++) {
-                        newkey.keys.push(
-                            {
-                                kty: data.keys[i].kty,
-                                use: data.keys[i].use,
-                                e: data.keys[i].e,
-                                kid: data.keys[i].kid,
-                                n: data.keys[i].n,
-                                x5c: data.keys[i].x5c,
-                                x5t: data.keys[i].x5t
-                            });
+                        for (let i = 0; i < data.keys.length; i++) {
+                            newkey.keys.push(
+                                {
+                                    kty: data.keys[i].kty,
+                                    use: data.keys[i].use,
+                                    e: data.keys[i].e,
+                                    kid: data.keys[i].kid,
+                                    n: data.keys[i].n,
+                                    x5c: data.keys[i].x5c,
+                                    x5t: data.keys[i].x5t
+                                });
                         }
 
                         newkey.save(function (err, rec) {
@@ -69,22 +73,23 @@ module.exports = {
         getKeyMetadataUri(getKeys);
     },
     getKeysFromDatabase: function (cb) {
-        Key.findOne({'keys.kty': 'RSA'}, function(err, key) {
-            if(err)
-            {
+        Key.findOne({ 'keys.kty': 'RSA' }, function (err, key) {
+            if (err) {
                 console.log("Failed to retrieve keys, not loaded yet?");
             }
-            else{
-                if(key){
+            else {
+                if (key) {
                     console.log("keys retrieved, count: " + key);
                     cb(key);
                 }
-                else
-                {
+                else {
                     // No keys in DB
                     cb(null);
                 }
             }
         })
+    },
+    getTermsFromResponse: function(rawTerms) {
+        return getTerms(rawTerms);
     }
 }

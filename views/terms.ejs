@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+    <title>Terms vi csom-node</title>
+  <style>
+    body {padding-top:20px; padding-left:50px; padding-right:50px}
+    .rightAlign { text-align:right}
+    .leftAlign { text-align:left}
+    .centerAlign { text-align:center}
+  </style>
+</head>
+<body class="centerAlign">
+	<div name="banner">
+      <h1>Termstore</h1>
+        <p>
+          
+        </p>
+	</div>
+    <div name="menu">
+		<a href="/">Home</a> |
+    </div>	
+	
+    <div name="display" class="leftAlign">
+    <h4>Terms in Group SiteProvisioning</h4>
+    <% if (data) { %> 
+		<pre><% for(var i=0; i<data.length; i++) {%></pre>
+		<table border="1">       
+        <% for(var key in data[i]) { %>            
+            <tr class="leftAlign"><td><%= key %></td><td><%= JSON.stringify(data[i][key]) %></td></tr>            
+        <% } %>
+        </table>
+        <% } %>
+    <% }else{ %>
+		<pre>No content</pre>
+	<% } %>
+    </div>
+
+</body>
+</html>

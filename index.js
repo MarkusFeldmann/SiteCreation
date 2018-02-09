@@ -42,8 +42,8 @@ app.use(session({
     })
 }));
 
-// Refresh token validation keys in DB
-utils.getKeysFromMetadataUri(); 
+// Refresh token validation keys in DB This is only needed if you want to manually check the the validity of token signatures (the middleware already does this)
+// utils.getKeysFromMetadataUri(); 
 
 
 app.use(passport.initialize());
